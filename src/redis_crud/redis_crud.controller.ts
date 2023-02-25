@@ -1,11 +1,22 @@
 // src/redis_crudredis_crud.controller.ts
-import { Controller, Delete, Get, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+} from '@nestjs/common';
 import {
   ApiOkResponse,
   ApiOperation,
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
+import { CreateManyDto } from 'src/dto/create-many.dto';
+import { GetManyDto } from 'src/dto/get-many.dto';
 import { RedisCrudService } from './redis_crud.service';
 
 @ApiTags('Redis CRUD API')
@@ -51,6 +62,32 @@ export class RedisCrudController {
       : { data: false, message: '저장되지 않음' };
   }
 
+  @Post()
+  @ApiOperation({
+    summary: 'Redis Mset',
+    description: 'redis에 key와 value를 각각 여러개 저장한다.',
+  })
+  @ApiOkResponse({
+    status: 200,
+    description: 'redis에 저장 완료후 응답',
+    schema: {
+      type: `{
+        data : boolean;
+        message : string;
+      }`,
+      example: {
+        data: true,
+        message: '저장완료',
+      },
+    },
+  })
+  async createMany(@Body() dto: CreateManyDto) {
+    return (await this.redisCrudService.saveDataMany(dto.keys, dto.values)) ===
+      'OK'
+      ? { data: true, message: '저장완료' }
+      : { data: false, message: '저장되지 않음' };
+  }
+
   @Get('get/keys')
   @ApiOperation({
     summary: 'Redis get',
@@ -79,6 +116,34 @@ export class RedisCrudController {
   async getValue(@Query('key') key: string) {
     console.log('redis create working : ', key);
     return await this.redisCrudService.getData(key);
+  }
+
+  @Post('get/keys')
+  @ApiOkResponse({
+    status: 200,
+    description: 'redis에 조회 완료후 응답',
+    schema: {
+      type: `[
+
+      ]`,
+      example: [
+        {
+          value1: 'hello',
+        },
+        {
+          value2: {
+            data: true,
+            str: 'world',
+          },
+        },
+        'value3',
+      ],
+    },
+  })
+  @HttpCode(HttpStatus.OK)
+  async getValueMany(@Body() dto: GetManyDto) {
+    console.log('redis create working : ', dto);
+    return await this.redisCrudService.getDataMany(dto.keys);
   }
 
   @Delete()
